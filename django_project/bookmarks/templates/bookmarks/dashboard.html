@@ -1,0 +1,240 @@
+
+{% extends 'bookmarks/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Top navigation/filter bar -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <h5 class="mb-0">Hello {{ request.user.username }}, Your Bookmarks</h5>
+                        <div class="d-flex">
+                            <a href="{% url 'bookmark_create' %}" class="btn btn-primary me-2">
+                                <i class="fas fa-plus"></i> Add Bookmark
+                            </a>
+                            <div class="dropdown me-2">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="tagFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-tags"></i> Tags
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="tagFilterDropdown">
+                                    {% for tag in tags %}
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'dashboard' %}?tag={{ tag.name }}">
+                                            {{ tag.name }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <a href="{% url 'dashboard' %}?favorites=1" class="btn btn-outline-warning me-2">
+                                <i class="fas fa-star"></i> Favorites
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search bar -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="get" action="{% url 'dashboard' %}" class="row g-2">
+                        <div class="col-12 mb-2">
+                            <h6><i class="fas fa-search"></i> Search Your Bookmarks</h6>
+                        </div>
+                        <div class="col">
+                            <div class="input-group">
+                                <input type="text" name="q" class="form-control" placeholder="Search by title, description, URL or tags..." value="{{ request.GET.q|default:'' }}">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <select name="sort" class="form-select" onchange="this.form.submit()">
+                                <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                                <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                                <option value="title" {% if request.GET.sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
+                                <option value="-title" {% if request.GET.sort == '-title' %}selected{% endif %}>Title (Z-A)</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active filters display -->
+    {% if request.GET.q or request.GET.tag or request.GET.favorites %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">Active filters:</span>
+                        {% if request.GET.q %}
+                        <span class="badge bg-primary me-2">Search: {{ request.GET.q }}</span>
+                        {% endif %}
+                        {% if request.GET.tag %}
+                        <span class="badge bg-info text-dark me-2">Tag: {{ request.GET.tag }}</span>
+                        {% endif %}
+                        {% if request.GET.favorites %}
+                        <span class="badge bg-warning text-dark me-2">Favorites only</span>
+                        {% endif %}
+                        <a href="{% url 'dashboard' %}" class="ms-auto btn btn-sm btn-outline-secondary">Clear all</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bookmarks grid -->
+    <div class="row">
+        {% if page_obj %}
+        {% for bookmark in page_obj %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 bookmark-card position-relative">
+                <div class="card-actions">
+                    <a href="{% url 'bookmark_update' bookmark.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'bookmark_delete' bookmark.id %}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+                <div class="favorite-toggle position-absolute" style="top: 10px; right: 10px;">
+                    <form method="post" action="{% url 'toggle_favorite' bookmark.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm {% if bookmark.is_favorite %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                            <i class="fas fa-star"></i>
+                        </button>
+                    </form>
+                </div>
+                
+                {% if bookmark.image_url %}
+                <img src="{{ bookmark.image_url }}" class="card-img-top bookmark-image" alt="{{ bookmark.title }}">
+                {% else %}
+                <div class="card-img-top bookmark-image-placeholder d-flex justify-content-center align-items-center">
+                    <i class="fas fa-link fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ bookmark.title }}</h5>
+                    <p class="card-text">{{ bookmark.description|truncatechars:100 }}</p>
+                    <div class="d-flex flex-wrap mb-2">
+                        {% for tag in bookmark.tags.all %}
+                        <a href="{% url 'dashboard' %}?tag={{ tag.name }}" class="badge bg-light text-dark me-1 mb-1">{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                    <a href="{{ bookmark.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        Visit <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <small class="text-muted d-block mt-2">Added: {{ bookmark.created_at|date:"M d, Y" }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                {% if request.GET.q or request.GET.tag or request.GET.favorites %}
+                No bookmarks found matching your filters.
+                {% else %}
+                You don't have any bookmarks yet. <a href="{% url 'bookmark_create' %}">Add your first bookmark</a>!
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Bookmarks pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.tag %}tag={{ request.GET.tag }}&{% endif %}{% if request.GET.favorites %}favorites=1&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.tag %}tag={{ request.GET.tag }}&{% endif %}{% if request.GET.favorites %}favorites=1&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.tag %}tag={{ request.GET.tag }}&{% endif %}{% if request.GET.favorites %}favorites=1&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bookmark-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 20px;
+    }
+    
+    .bookmark-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .bookmark-image, .bookmark-image-placeholder {
+        height: 150px;
+        object-fit: cover;
+        background-color: #f8f9fa;
+    }
+    
+    .card-actions {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        display: none;
+        z-index: 10;
+    }
+    
+    .bookmark-card:hover .card-actions {
+        display: block;
+    }
+    
+    .favorite-toggle {
+        z-index: 10;
+    }
+    
+    @media (max-width: 768px) {
+        .card-actions {
+            display: block;
+        }
+    }
+</style>
+{% endblock %}
