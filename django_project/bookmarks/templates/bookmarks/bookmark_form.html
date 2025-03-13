@@ -1,0 +1,61 @@
+{% extends 'bookmarks/base.html' %}
+
+{% block title %}{{ action }} Bookmark{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">{{ action }} Bookmark</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="url" class="form-label">URL *</label>
+                            <input type="url" class="form-control" id="url" name="url" 
+                                   value="{{ bookmark.url|default:'' }}" required>
+                            <div class="form-text">Enter a valid URL including http:// or https://</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{{ bookmark.title|default:'' }}" required maxlength="200">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="image_url" class="form-label">Image URL</label>
+                            <input type="url" class="form-control" id="image_url" name="image_url" 
+                                   value="{{ bookmark.image_url|default:'' }}">
+                            <div class="form-text">Optional: URL for a thumbnail or preview image</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" maxlength="500">{{ bookmark.description|default:'' }}</textarea>
+                            <div class="form-text">Optional: Brief description (max 500 characters)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   value="{{ tags|default:'' }}">
+                            <div class="form-text">Optional: Comma-separated list of tags (e.g., work, personal, important)</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Bookmark</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
